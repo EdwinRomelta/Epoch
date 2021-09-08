@@ -23,6 +23,7 @@ class _WeatherData extends State<WeatherData> {
   double longitude;
   DateTime time = DateTime.now();
   bool isHourly = false;
+  bool first24 = true;
 
   String urlTest =
       "https://api.openweathermap.org/data/2.5/onecall?lat=72.8776&lon=72.877655&appid=2e68e9376d6d1b205a6c9bf2fc7f68f8";
@@ -71,6 +72,15 @@ class _WeatherData extends State<WeatherData> {
                   }
                   return CircularProgressIndicator();
                 }),
+            if(isHourly)
+              TextButton(
+                child: Text(first24 ? '48h' : '24h'),
+                onPressed: () {
+                  setState(() {
+                    first24 = !first24;
+                  });
+                },
+              ),
             TextButton(
               child: Text(isHourly ? 'Weekly' : 'Hourly'),
               onPressed: () {
@@ -157,40 +167,43 @@ class _WeatherData extends State<WeatherData> {
           textStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
       // zoomPanBehavior:
       //     ZoomPanBehavior(enablePanning: true, maximumZoomLevel: 0.1),
-      primaryXAxis: CategoryAxis(),
-      legend: Legend(
-        isVisible: true,
-        position: LegendPosition.bottom,
+      primaryXAxis: CategoryAxis(
+        visibleMaximum: 12,
+      ),
+      zoomPanBehavior: ZoomPanBehavior(
+        enablePanning: true,
       ),
       series: <SplineSeries<Current, String>>[
-        SplineSeries<Current, String>(
-          // Bind data source
-          name: 'Today',
-          dataSource: weather.hourly
-              .where((element) => element.dt.isBefore(tomorrow))
-              .toList(),
-          xValueMapper: (Current hourly, _) => hourlyFormat.format(hourly.dt),
+        if (first24)
+          SplineSeries<Current, String>(
+            // Bind data source
+            name: '24 Hour',
+            dataSource: weather.hourly
+                .where((element) => element.dt.isBefore(tomorrow))
+                .toList(),
+            xValueMapper: (Current hourly, _) => hourlyFormat.format(hourly.dt),
 
-          //dateTime. You need to covert it okay
-          yValueMapper: (Current hourly, _) => hourly.temp,
-          color: Colors.orange,
-          width: 3,
-          opacity: 1,
-        ),
-        SplineSeries<Current, String>(
-          // Bind data source
-          name: 'Tomorrow',
-          dataSource: weather.hourly
-              .where((element) => element.dt.isAfter(tomorrow))
-              .toList(),
-          xValueMapper: (Current hourly, _) => hourlyFormat.format(hourly.dt),
+            //dateTime. You need to covert it okay
+            yValueMapper: (Current hourly, _) => hourly.temp,
+            color: Colors.orange,
+            width: 3,
+            opacity: 1,
+          ),
+        if (!first24)
+          SplineSeries<Current, String>(
+            // Bind data source
+            name: '48 Hour',
+            dataSource: weather.hourly
+                .where((element) => element.dt.isAfter(tomorrow))
+                .toList(),
+            xValueMapper: (Current hourly, _) => hourlyFormat.format(hourly.dt),
 
-          //dateTime. You need to covert it okay
-          yValueMapper: (Current hourly, _) => hourly.temp,
-          color: Colors.red,
-          width: 3,
-          opacity: 1,
-        ),
+            //dateTime. You need to covert it okay
+            yValueMapper: (Current hourly, _) => hourly.temp,
+            color: Colors.red,
+            width: 3,
+            opacity: 1,
+          ),
       ],
     );
   }
