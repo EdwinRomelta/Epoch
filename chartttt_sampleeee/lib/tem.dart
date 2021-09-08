@@ -1,10 +1,11 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+
 import 'model/current_weather_model.dart';
-import 'geo_location.dart';
 
 const apiKey = "";
 
@@ -16,11 +17,16 @@ class WeatherData extends StatefulWidget {
 }
 
 class _WeatherData extends State<WeatherData> {
+  final weeklyFormat = DateFormat('EEEE');
+  final hourlyFormat = DateFormat('HH');
   double latitude;
   double longitude;
+  DateTime time = DateTime.now();
+  bool isHourly = false;
 
   String urlTest =
       "https://api.openweathermap.org/data/2.5/onecall?lat=72.8776&lon=72.877655&appid=2e68e9376d6d1b205a6c9bf2fc7f68f8";
+
   // static String url =
   //     "https://api.openweathermap.org/data/2.5/weather?lat=$latitude&lon=$longitude&appid=$apiKey";
   Future<GeneralWeatherModel> getData;
@@ -58,10 +64,21 @@ class _WeatherData extends State<WeatherData> {
                     ///Here_you_return_data_
                     // return Text(
                     //     "Data" + currentWeather.current.temp.toString());
+                    if (isHourly) {
+                      return chartWidget2(currentWeather);
+                    }
                     return chartWidget1(currentWeather);
                   }
                   return CircularProgressIndicator();
-                })
+                }),
+            TextButton(
+              child: Text(isHourly ? 'Weekly' : 'Hourly'),
+              onPressed: () {
+                setState(() {
+                  isHourly = !isHourly;
+                });
+              },
+            ),
           ],
         ),
       ),
@@ -88,6 +105,7 @@ class _WeatherData extends State<WeatherData> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            primaryXAxis: CategoryAxis(labelRotation: 90),
             // legend: Legend(
             //   isVisible: true,
             // ),
@@ -105,20 +123,20 @@ class _WeatherData extends State<WeatherData> {
             // ),
             // primaryYAxis:
             //     ingericAxis(edgeLabelPlacement: EdgeLabelPlacement.hide),
-            series: <ColumnSeries<Daily, num>>[
-              ColumnSeries<Daily, num>(
+            series: <ColumnSeries<Daily, String>>[
+              ColumnSeries<Daily, String>(
                 // name: 'WEEK',
                 // Bind data source
                 dataSource: weather.daily,
-                xValueMapper: (Daily daily, _) => daily.dt.weekday,
+                xValueMapper: (Daily daily, _) => weeklyFormat.format(daily.dt),
                 // You need to covert it okay
                 yValueMapper: (Daily daily, _) => daily.temp.max,
                 color: Colors.red,
               ),
-              ColumnSeries<Daily, num>(
+              ColumnSeries<Daily, String>(
                 // Bind data source
                 dataSource: weather.daily,
-                xValueMapper: (Daily daily, _) => daily.dt.weekday,
+                xValueMapper: (Daily daily, _) => weeklyFormat.format(daily.dt),
                 //dateTime. You need to covert it okay
                 yValueMapper: (Daily daily, _) => daily.temp.min,
                 color: Colors.yellowAccent,
@@ -129,29 +147,51 @@ class _WeatherData extends State<WeatherData> {
       ),
     );
   }
-}
 
-Widget chartWidget2(GeneralWeatherModel weather) {
-  //Here_we_will_parse_weather_data_to_chart_
-  return SfCartesianChart(
-    title: ChartTitle(
-        text: 'HOURLY TEMPERATURE',
-        textStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-    // zoomPanBehavior:
-    //     ZoomPanBehavior(enablePanning: true, maximumZoomLevel: 0.1),
-    primaryXAxis: CategoryAxis(),
-    series: <SplineSeries<Current, dynamic>>[
-      SplineSeries<Current, dynamic>(
-        // Bind data source
-        dataSource: weather.hourly,
-        xValueMapper: (Current hourly, _) => hourly.dt.toStringAsFixed(1),
-
-        //dateTime. You need to covert it okay
-        yValueMapper: (Current hourly, _) => hourly.temp,
-        color: Colors.orange,
-        width: 3,
-        opacity: 1,
+  Widget chartWidget2(GeneralWeatherModel weather) {
+    //Here_we_will_parse_weather_data_to_chart_
+    final tomorrow = DateTime.now().add(Duration(days: 1));
+    return SfCartesianChart(
+      title: ChartTitle(
+          text: 'HOURLY TEMPERATURE',
+          textStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+      // zoomPanBehavior:
+      //     ZoomPanBehavior(enablePanning: true, maximumZoomLevel: 0.1),
+      primaryXAxis: CategoryAxis(),
+      legend: Legend(
+        isVisible: true,
+        position: LegendPosition.bottom,
       ),
-    ],
-  );
+      series: <SplineSeries<Current, String>>[
+        SplineSeries<Current, String>(
+          // Bind data source
+          name: 'Today',
+          dataSource: weather.hourly
+              .where((element) => element.dt.isBefore(tomorrow))
+              .toList(),
+          xValueMapper: (Current hourly, _) => hourlyFormat.format(hourly.dt),
+
+          //dateTime. You need to covert it okay
+          yValueMapper: (Current hourly, _) => hourly.temp,
+          color: Colors.orange,
+          width: 3,
+          opacity: 1,
+        ),
+        SplineSeries<Current, String>(
+          // Bind data source
+          name: 'Tomorrow',
+          dataSource: weather.hourly
+              .where((element) => element.dt.isAfter(tomorrow))
+              .toList(),
+          xValueMapper: (Current hourly, _) => hourlyFormat.format(hourly.dt),
+
+          //dateTime. You need to covert it okay
+          yValueMapper: (Current hourly, _) => hourly.temp,
+          color: Colors.red,
+          width: 3,
+          opacity: 1,
+        ),
+      ],
+    );
+  }
 }

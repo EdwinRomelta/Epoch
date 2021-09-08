@@ -70,7 +70,7 @@ class Current {
     this.pop,
   });
 
-  int dt;
+  DateTime dt;
   int sunrise;
   int sunset;
   double temp;
@@ -89,7 +89,7 @@ class Current {
   double pop;
 
   factory Current.fromJson(Map<String, dynamic> json) => Current(
-        dt: json["dt"],
+        dt: DateTime.fromMillisecondsSinceEpoch(json['dt'] * 1000),
         sunrise: json["sunrise"] == null ? null : json["sunrise"],
         sunset: json["sunset"] == null ? null : json["sunset"],
         temp: json["temp"].toDouble(),
@@ -245,8 +245,8 @@ class Daily {
   double snow;
 
   factory Daily.fromJson(Map<String, dynamic> json) => Daily(
-        // dt: DateTime.fromMillisecondsSinceEpoch(json['dt'] * 1000),
-        dt: DateFormat('EEEE, hh:mm a').format(date);
+        dt: DateTime.fromMillisecondsSinceEpoch(json['dt'] * 1000),
+        // dt: DateFormat('EEEE, hh:mm a').format(date);
         sunrise: json["sunrise"],
         sunset: json["sunset"],
         moonrise: json["moonrise"],
